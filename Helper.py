@@ -12,6 +12,7 @@ import sys
 import time
 import pickle
 import matplotlib.pyplot as plt
+import matplotlib.colors as colors
 import pandas as pd
 import seaborn as sns
 
@@ -79,14 +80,45 @@ def DrawVariables(X, Y):
 
 #--------------------------------------------------------------------------------------------------
 
-def Correlation(X):
-    d = pd.DataFrame(data=X) 
-    corr = d.corr()
+def Correlation(X, Y):
+    signal = []
+    background = []
+
+    for idx, x in enumerate(X):
+        if Y[idx] == 1:
+            signal.append(x)
+        elif Y[idx] == 0:
+            background.append(x)
+
+    sig = pd.DataFrame(data=signal) 
+    bkg = pd.DataFrame(data=background) 
+
+    # Compute the correlation matrix
+    corrSig = sig.corr()
+    corrBkg = bkg.corr()
+
+    # Generate a mask for the upper triangle
+    mask = np.zeros_like(corrSig, dtype=np.bool)
+    mask[np.triu_indices_from(mask)] = True
+
+    jet = plt.get_cmap('jet')
+
+    # Signal Plot
     f, ax = plt.subplots(figsize=(11, 9))
-    cmap = sns.diverging_palette(220, 10, as_cmap=True)
-    sns.heatmap(corr, cmap=cmap, vmax=1.0, vmin=-1.0, center=0,
+    sns.heatmap(corrSig, mask=mask, cmap=jet, vmax=1.0, vmin=-1.0, center=0,
                 square=True, linewidths=.5, cbar_kws={"shrink": .5})
-    plotName = 'CorrelationMatrix.pdf'
+
+    plotName = 'CorrelationMatrixSignal.pdf'
+    plt.savefig(plotName)
+    plt.show()
+    plt.close()
+
+    # Background Plot
+    f, ax = plt.subplots(figsize=(11, 9))
+    sns.heatmap(corrBkg, mask=mask, cmap=jet, vmax=1.0, vmin=-1.0, center=0,
+                square=True, linewidths=.5, cbar_kws={"shrink": .5})
+
+    plotName = 'CorrelationMatrixBackground.pdf'
     plt.savefig(plotName)
     plt.show()
     plt.close()

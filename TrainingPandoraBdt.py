@@ -42,7 +42,9 @@ if __name__=="__main__":
         # Test Data in useable format
         X_org, Y_org = SplitTrainingSet(trainSet, nFeatures)
         #DrawVariables(X_org, Y_org)
-        Correlation(X_org)
+        Correlation(X_org, Y_org)
+
+        sys.exit()
         
         # Train the BDT
         X, Y = Randomize(X_org, Y_org)
