@@ -17,16 +17,13 @@ if __name__=="__main__":
                          {'File' : 'Data/BdtBeamParticleId_Training_Beam_Cosmics_7GeV_Concatenated.txt', 'Momentum' : 7  }]
     bdtName           = 'BdtBeamParticleID'
     treeDepth         = 3
-    nTrees            = 200
+    nTrees            = 100
     
-    serializeToPkl    = False
-    serializeToXml    = False
+    serializeToPkl    = True
+    serializeToXml    = True
     loadFromPkl       = False
     xmlFileName       = 'BdtBeamParticleID_NTrees_' + str(nTrees) + '_TreeDepth_' + str(treeDepth) + '.xml'
     pklFileName       = 'BdtBeamParticleID_NTrees_' + str(nTrees) + '_TreeDepth_' + str(treeDepth) + '.pkl'
-    
-#    tol       = 0.001
-#    shrinking = False 
     
     #----------------------------------------------------------------------------------------------
     
@@ -41,14 +38,14 @@ if __name__=="__main__":
 
         # Test Data in useable format
         X_org, Y_org = SplitTrainingSet(trainSet, nFeatures)
-        #DrawVariables(X_org, Y_org)
+        DrawVariables(X_org, Y_org)
         Correlation(X_org, Y_org)
 
-        sys.exit()
+        #sys.exit()
         
         # Train the BDT
         X, Y = Randomize(X_org, Y_org)
-        X_train, Y_train, X_test, Y_test = Sample(X, Y, 0.1)
+        X_train, Y_train, X_test, Y_test = Sample(X, Y, 0.5)
         
         OverwriteStdout('Training AdaBoostClassifer...')
         bdtModel, trainingTime = TrainAdaBoostClassifer(X_train, Y_train, n_estimatorsValue=nTrees, max_depthValue=treeDepth)

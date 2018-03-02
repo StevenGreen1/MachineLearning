@@ -1,0 +1,18 @@
+0 = ClosestDistance
+1 = SupplementaryAngleToBeamNu
+2 = Separation
+3 = EVal1
+4 = EVal2
+5 = EVal3
+6 = MaxY
+7 = nPFOs
+
+8 = ClosestDistance
+9 = SupplementaryAngleToBeamNu
+10 = Separation
+11 = EVal1
+12 = EVal2
+13 = EVal3
+14 = MaxY
+15 = nPFOs
+

@@ -22,11 +22,15 @@ def LoadData(trainingFileName, delimiter=','):
         ncols = len(file.readline().split(delimiter))
         
     # First column is a datestamp, so skip it
+    # All Data
     trainingSet = np.genfromtxt(trainingFileName, delimiter=delimiter, usecols=range(1,ncols), 
                                 dtype=None)
+    #trainingSet = np.genfromtxt(trainingFileName, delimiter=delimiter, usecols= (1,2,3,4,5,6,7,8,12,13,14,15,16,17), # range(1,18), 
+    #                            dtype=None)
                                 
     nExamples = trainingSet.size
     nFeatures = ncols - 2 # last column is the response
+    #nFeatures = 13 #ncols - 2 # last column is the response
     return np.array(trainingSet), nFeatures, nExamples
 
 #--------------------------------------------------------------------------------------------------
