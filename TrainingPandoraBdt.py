@@ -16,8 +16,8 @@ if __name__=="__main__":
                          {'File' : 'Data/BdtBeamParticleId_Training_Beam_Cosmics_1GeV_Concatenated.txt', 'Momentum' : 1  },
                          {'File' : 'Data/BdtBeamParticleId_Training_Beam_Cosmics_7GeV_Concatenated.txt', 'Momentum' : 7  }]
     bdtName           = 'BdtBeamParticleID'
-    treeDepth         = 3
-    nTrees            = 100
+    treeDepth         = int(sys.argv[1]) #3
+    nTrees            = int(sys.argv[2]) #100
     
     serializeToPkl    = True
     serializeToXml    = True
@@ -26,7 +26,7 @@ if __name__=="__main__":
     pklFileName       = 'BdtBeamParticleID_NTrees_' + str(nTrees) + '_TreeDepth_' + str(treeDepth) + '.pkl'
     
     #----------------------------------------------------------------------------------------------
-    
+
     if loadFromPkl:
         OverwriteStdout('Loading model from file ' + pklFileName + '\n')
         bdtModel = LoadFromPkl(pklFileName)
@@ -38,8 +38,8 @@ if __name__=="__main__":
 
         # Test Data in useable format
         X_org, Y_org = SplitTrainingSet(trainSet, nFeatures)
-        DrawVariables(X_org, Y_org)
-        Correlation(X_org, Y_org)
+        #DrawVariables(X_org, Y_org)
+        #Correlation(X_org, Y_org)
 
         #sys.exit()
         
@@ -158,5 +158,5 @@ if __name__=="__main__":
 
         plt.tight_layout()
         plt.savefig('TrainingBdtBeamParticleID_NTrees_' + str(nTrees) + '_TreeDepth_' + str(treeDepth) + '.pdf')
-        plt.show()
+        #plt.show()
 
