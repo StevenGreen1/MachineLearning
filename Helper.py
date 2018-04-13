@@ -25,12 +25,11 @@ def LoadData(trainingFileName, delimiter=','):
     # All Data
     trainingSet = np.genfromtxt(trainingFileName, delimiter=delimiter, usecols=range(1,ncols), 
                                 dtype=None)
-    #trainingSet = np.genfromtxt(trainingFileName, delimiter=delimiter, usecols= (1,2,3,4,5,6,7,8,12,13,14,15,16,17), # range(1,18), 
+    #trainingSet = np.genfromtxt(trainingFileName, delimiter=delimiter, usecols= (1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17), # range(1,18), 
     #                            dtype=None)
                                 
     nExamples = trainingSet.size
     nFeatures = ncols - 2 # last column is the response
-    #nFeatures = 13 #ncols - 2 # last column is the response
     return np.array(trainingSet), nFeatures, nExamples
 
 #--------------------------------------------------------------------------------------------------
@@ -48,7 +47,36 @@ def SplitTrainingSet(trainingSet, nFeatures):
         X.append(features)
 
     return np.array(X).astype(np.float64), np.array(Y).astype(np.int)
-    
+
+#--------------------------------------------------------------------------------------------------
+
+def SplitDetailedTrainingSet(trainingSet, nFeatures):
+    X=[] # features sets
+    Y=[] # responses
+
+    for example in trainingSet:
+        purity = (float)(example[nFeatures-1])
+        completeness = (float)(example[nFeatures-2])
+
+        #print('Purity = ' + str(purity))
+        #print('Completeness = ' + str(completeness))
+
+        if (purity > 0.8 and completeness > 0.8 and example[nFeatures] == 1):
+            Y.append(1)
+        else:
+            Y.append(0)
+
+        features = []
+        for i in range(0, nFeatures-2):
+            #print(float(example[i]))
+            features.append(float(example[i])) # features in this model must be Python float
+
+        #print(example)
+        #print(features)
+        X.append(features)
+
+    return np.array(X).astype(np.float64), np.array(Y).astype(np.int)
+
 #--------------------------------------------------------------------------------------------------
 
 def DrawVariables(X, Y):
@@ -211,7 +239,7 @@ def WriteXmlFile(filePath, adaBoostClassifer):
     with open(filePath, "a") as modelFile:
         indentation = 0
         indentation = OpenXmlTag(modelFile,    'AdaBoostDecisionTree', indentation)
-        WriteXmlFeature(modelFile, 'TestingBDT', 'Name', indentation)
+        WriteXmlFeature(modelFile, 'BeamParticleId', 'Name', indentation)
         WriteXmlFeature(modelFile, datetimeString, 'Timestamp', indentation)
         
         for idx, estimator in enumerate(adaBoostClassifer.estimators_):
@@ -224,16 +252,16 @@ def WriteXmlFile(filePath, adaBoostClassifer):
 
 def Recurse(node, parentnode, depth, position, indentation, decisionTree, modelFile):
     indentation = OpenXmlTag(modelFile, 'Node', indentation)
-    WriteXmlFeature(modelFile, node, 'NodeID', indentation)
-    WriteXmlFeature(modelFile, parentnode, 'ParentID', indentation)
+    WriteXmlFeature(modelFile, node, 'NodeId', indentation)
+    WriteXmlFeature(modelFile, parentnode, 'ParentNodeId', indentation)
 
     if decisionTree.feature[node] != _tree.TREE_UNDEFINED:
         name = decisionTree.feature[node] #(int)(node) #feature_name[node]
         threshold = decisionTree.threshold[node]
-        WriteXmlFeature(modelFile, name, 'VariableID', indentation)
+        WriteXmlFeature(modelFile, name, 'VariableId', indentation)
         WriteXmlFeature(modelFile, threshold, 'Threshold', indentation)
-        WriteXmlFeature(modelFile, decisionTree.children_left[node], 'LeftDaughterID', indentation)
-        WriteXmlFeature(modelFile, decisionTree.children_right[node], 'RightDaughterID', indentation)
+        WriteXmlFeature(modelFile, decisionTree.children_left[node], 'LeftChildNodeId', indentation)
+        WriteXmlFeature(modelFile, decisionTree.children_right[node], 'RightChildNodeId', indentation)
         indentation = CloseXmlTag(modelFile, 'Node', indentation)
         indentation = indentation + 4
         Recurse(decisionTree.children_left[node], node, depth + 1, 'Left', indentation, decisionTree, modelFile)
@@ -255,7 +283,7 @@ def WriteDecisionTree(estimator, modelFile, indentation, treeIdx, boostWeight):
     indentation = OpenXmlTag(modelFile, 'DecisionTree', indentation)
 
     WriteXmlFeature(modelFile, treeIdx, 'TreeIndex', indentation)
-    WriteXmlFeature(modelFile, boostWeight, 'BoostWeight', indentation)
+    WriteXmlFeature(modelFile, boostWeight, 'TreeWeight', indentation)
     Recurse(0, -1, 1, 'Start', indentation, decisionTree, modelFile)
 
     indentation = CloseXmlTag(modelFile, 'DecisionTree', indentation)

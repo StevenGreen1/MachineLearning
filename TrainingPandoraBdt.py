@@ -3,6 +3,7 @@
 
 from Helper import *
 import sys
+import math
 
 if __name__=="__main__":
 
@@ -10,6 +11,7 @@ if __name__=="__main__":
     
     trainingFile      = 'Data/BdtBeamParticleId_Training_Beam_Cosmics_5GeV_Concatenated.txt'
     trainingMomentum  = 5
+    testingFiles      = []
     testingFiles      = [{'File' : 'Data/BdtBeamParticleId_Training_Beam_Cosmics_-7GeV_Concatenated.txt', 'Momentum' : -7 },
                          {'File' : 'Data/BdtBeamParticleId_Training_Beam_Cosmics_-5GeV_Concatenated.txt', 'Momentum' : -5  },
                          {'File' : 'Data/BdtBeamParticleId_Training_Beam_Cosmics_-1GeV_Concatenated.txt', 'Momentum' : -1  },
@@ -37,7 +39,8 @@ if __name__=="__main__":
         trainSet, nFeatures, nExamples = LoadData(trainingFile, ',')
 
         # Test Data in useable format
-        X_org, Y_org = SplitTrainingSet(trainSet, nFeatures)
+        #X_org, Y_org = SplitTrainingSet(trainSet, nFeatures)
+        X_org, Y_org = SplitDetailedTrainingSet(trainSet, nFeatures)
         #DrawVariables(X_org, Y_org)
         #Correlation(X_org, Y_org)
 
@@ -73,22 +76,77 @@ if __name__=="__main__":
         plot_step = 1.0
         class_names = ['Beam Particle', 'Cosmic Rays']
         signal_definition = [1, 0]
+        plot_range = (-1,1)
+        nBins = 100
 
-        test_results = bdtModel.decision_function(X_test)
-        plot_range = (test_results.min(), test_results.max())
-
-        # Testing BDT Using Remainder of Training Sample
+        # Find optimal cut based on significance
+        train_results = bdtModel.decision_function(X_train)
         fig = plt.figure(figsize=(12,8))
         ax = fig.add_subplot(2, 3, 1)
         ax.set_title(str(trainingMomentum) + " Gev Beam Cosmic, Remainder Training Sample")
 
+        sigEff = 0
+        bkgRej = 0
+        sigEntries = []
+        bkgEntries = []
+
+        for i, n, g in zip(signal_definition, class_names, plot_colors):
+            entries, bins, patches = ax.hist(train_results[Y_train == i],
+                                             bins=nBins,
+                                             range=plot_range,
+                                             facecolor=g,
+                                             label='Class %s' % n,
+                                             alpha=.5,
+                                             edgecolor='k')
+            if i == 1:
+                sigEntries = entries
+            elif i == 0:
+                bkgEntries = entries
+
+        nSigEntries = sum(sigEntries)
+        nBkgEntries = sum(bkgEntries)
+        optimalSignif = 0
+        optimalSigEff = 0
+        optimalBkgRej = 0
+        optimalBinCut = 0
+        optimalScoreCut = 0
+
+        for binCut in range(0, nBins):
+            nSigPassing = sum(sigEntries[binCut:])
+            nBkgPassing = sum(bkgEntries[binCut:])
+
+            signif = 0
+            if (nSigPassing + nBkgPassing > 0):
+                signif = nSigPassing / math.sqrt(nSigPassing + nBkgPassing)
+
+            if (signif > optimalSignif):
+                nBkgFailing = sum(bkgEntries[:binCut])
+                sigEff = 100 * nSigPassing / nSigEntries
+                bkgRej = 100 * nBkgFailing / nBkgEntries
+                optimalSignif = signif
+                optimalBinCut = binCut
+                optimalScoreCut = bins[optimalBinCut]
+                optimalSigEff = sigEff
+                optimalBkgRej = bkgRej
+
+        print('Optimal signif : ' + str(optimalSignif))
+        print('Optimal sigEff : ' + str(optimalSigEff))
+        print('Optimal bkgRej : ' + str(optimalBkgRej))
+        print('Optimal binCut : ' + str(optimalBinCut))
+        print('Optimal scoreCut : ' + str(optimalScoreCut))
+
+        # Testing BDT Using Remainder of Training Sample
         test_results = bdtModel.decision_function(X_test)
+        fig = plt.figure(figsize=(12,8))
+        ax = fig.add_subplot(2, 3, 1)
+        ax.set_title(str(trainingMomentum) + " Gev Beam Cosmic, Remainder Training Sample")
+
         sigEff = 0
         bkgRej = 0
 
         for i, n, g in zip(signal_definition, class_names, plot_colors):
             entries, bins, patches = ax.hist(test_results[Y_test == i],
-                                             bins=10,
+                                             bins=nBins,
                                              range=plot_range,
                                              facecolor=g,
                                              label='Class %s' % n,
@@ -96,14 +154,14 @@ if __name__=="__main__":
                                              edgecolor='k')
             if i == 1:
                 nEntries = sum(entries)
-                nEntriesPassing = sum(entries[5:])
+                nEntriesPassing = sum(entries[optimalBinCut:])
                 sigEff = nEntriesPassing/nEntries
             elif i == 0:
                 nEntries = sum(entries)
-                nEntriesFailing = sum(entries[:5])
+                nEntriesFailing = sum(entries[:optimalBinCut])
                 bkgRej = nEntriesFailing/nEntries
 
-        plt.text(0.75, 0.75, "Sig Eff {:.4%}, \nBkg Rej {:.4%}".format(sigEff,bkgRej),
+        plt.text(0.75, 0.75, "Sig Eff {:.4%}, \nBkg Rej {:.4%}, \nScore Cut {:.2}".format(sigEff,bkgRej,optimalScoreCut),
                 horizontalalignment='center',
                 verticalalignment='center',
                 transform = ax.transAxes) 
@@ -121,7 +179,8 @@ if __name__=="__main__":
             ax.set_title(str(testFile['Momentum']) + " Gev Beam Cosmic, Full Set")
 
             testSet, nFeaturesTest, nExamplesTest = LoadData(testFile['File'], ',')
-            X_test_data, Y_test_data = SplitTrainingSet(testSet, nFeaturesTest)
+            #X_test_data, Y_test_data = SplitTrainingSet(testSet, nFeaturesTest)
+            X_test_data, Y_test_data = SplitDetailedTrainingSet(testSet, nFeaturesTest)
             test_results = bdtModel.decision_function(X_test_data)
 
             sigEff = 0
@@ -129,7 +188,7 @@ if __name__=="__main__":
 
             for i, n, g in zip(signal_definition, class_names, plot_colors):
                 entries, bins, patches = ax.hist(test_results[Y_test_data == i],
-                                                  bins=10,
+                                                  bins=nBins,
                                                   range=plot_range,
                                                   facecolor=g,
                                                   label='Class %s' % n,
@@ -137,14 +196,14 @@ if __name__=="__main__":
                                                   edgecolor='k')
                 if i == 1:
                     nEntries = sum(entries)
-                    nEntriesPassing = sum(entries[5:])
+                    nEntriesPassing = sum(entries[optimalBinCut:])
                     sigEff = nEntriesPassing/nEntries
                 elif i == 0:
                     nEntries = sum(entries)
-                    nEntriesFailing = sum(entries[:5])
+                    nEntriesFailing = sum(entries[:optimalBinCut])
                     bkgRej = nEntriesFailing/nEntries
 
-            plt.text(0.75, 0.75, "Sig Eff {:.4%}, \nBkg Rej {:.4%}".format(sigEff,bkgRej),
+            plt.text(0.75, 0.75, "Sig Eff {:.4%}, \nBkg Rej {:.4%}, \nScore Cut {:.2}".format(sigEff,bkgRej,optimalScoreCut),
                     horizontalalignment='center',
                     verticalalignment='center',
                     transform = ax.transAxes)
